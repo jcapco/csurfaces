@@ -11,6 +11,7 @@ Currently I am providing `Maple` codes in `mpl` (text-based). This is work in pr
 We say that a quaternary cubic form $F$ (or its zero set $X$) in the variables $w,x,y,z$ has a *normal form* if: 
  - $X$ has no lines parallel to the $x$, $y$ or $z$ axes.
  - $X$ has no lines at the plane of infinity $w=0$.
+
 Throughout when we write *cubic surface*, we mean one that is normal (i.e. finitely many singular points) and has only finitely many number of lines.
 
 ### *Cubic surfaces not in normal form*
