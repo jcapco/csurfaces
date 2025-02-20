@@ -38,7 +38,7 @@ We illustrate this with a singular cubic in the Sylvester normal form :
 
 ---
 **`normal_form.mpl`**
-<!-- normal-form -->
+<a id="normal_form"></a>
   ```
   read("lib_cubic_surface.mpl"):
   #cubic surface singluar at (2:2:2:-3)
