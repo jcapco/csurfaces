@@ -37,7 +37,7 @@ An easy way (not necessarily optimal) would be to projectively transform the cub
 We illustrate this with a singular cubic in the Sylvester normal form :
 
 ---
-**`normal_form.mpl`**
+**`normal_form`**
 <a id="normal_form"></a>
   ```
   read("lib_cubic_surface.mpl"):
@@ -57,11 +57,19 @@ Note that if `gb[1]` is not univariate and of degree 27 (in our case the roots c
 
 ### Number of Lines
 
-From `gb[1]`, we can get the number of lines contained in the cubic surface by executing `no_lines(gb)`. However, we can get more information than that. Provided that the cubic surface is such that the roots of the univariate polynomial in `gb[1]` are algebraic numbers in low bits. We can explicitly compute for the lines. This is the case for Sylvester normal form provided in [`normal_form.mpl`](#normal_form). In this particular case we can make use of the procedure `create_lines` that takes $M$ and $gb$ ( [`normal_form.mpl`](#normal_form)) see as input:
+Although the procedure discussed here will work for non-normal cubic forms, it is always recommended to use normal forms (such as those expressed by Sylvester normal forms). With low bit coefficients, the procedure for computing lines is much faster for these normal forms.
 
+From `gb[1]`, we can get the number of lines contained in the cubic surface by executing `no_lines(gb)`. However, we can get more information than that. Provided that the cubic surface is such that the roots of the univariate polynomial in `gb[1]` are algebraic numbers in low bits. We can explicitly compute for the lines. This is the case for Sylvester normal form provided in [`normal_form`](#normal_form). In this particular case we can make use of the procedure `create_lines` that takes $M$ and $gb$ ( [`normal_form`](#normal_form)) see as input:
+
+---
+  **`compute_lines`**
+  <a id="compute_lines"></a>  
   ```
   Lines, mlines := create_lines(gb,M):
   ```
+---
+You can give the identity matrix for $M$ if a non-normal form was used in the first place.
+
 In our particular example, the outputs are 
   ```
   Lines := [[w, 0, -w, z], [0, -y, y, z], [w, -w, 0, z], [1/3*(-5+2*6^(1/2))*(4*z*6^(1/2)+3*y+12*z), 1/3*(-2+6^(1/2))*(-z*6^(1/2)+3*y), y, z], [w, x, -w+2*x, 1/4*6^(1/2)*(-x*6^(1/2)+2*w-2*x)], [-1/75*(16+6^(1/2))*(z*6^(1/2)+6*y), 1/46875*(131+16*6^(1/2))*(128*z*6^(1/2)+375*y-48*z), y, z], [w, x, -8/5*w-x, -1/20*6^(1/2)*(-6^(1/2)*w+16*w+20*x)], [w, -5/8*w-5/8*y, y, 1/2000*(-3+8*6^(1/2))*(-16*y*6^(1/2)+125*w-131*y)], [-1/60*6^(1/2)*(8*x*6^(1/2)-3*x+10*z), x, 1/60*6^(1/2)*(-8*x*6^(1/2)-3*x+10*z), z], [w, -y, y, -1/6*(3+2*6^(1/2))*w], [2/5*(3+2*6^(1/2))*z, x, -x, z], [w, -w, y, -1/6*(3+2*6^(1/2))*y], [-x, x, 2/5*(3+2*6^(1/2))*z, z], [1/3*(-2+6^(1/2))*(-z*6^(1/2)+3*x), x, 1/3*(-5+2*6^(1/2))*(4*z*6^(1/2)+3*x+12*z), z], [w, 2*w-y, y, -1/2*(6^(1/2)+3)*(-y*6^(1/2)+w+2*y)], [-y, 2/5*(3+2*6^(1/2))*z, y, z], [w, x, -w, -1/6*(3+2*6^(1/2))*x], [1/3*(-5+2*6^(1/2))*(4*z*6^(1/2)+3*x+12*z), x, 1/3*(-2+6^(1/2))*(-z*6^(1/2)+3*x), z], [w, -w+2*y, y, 1/4*6^(1/2)*(-y*6^(1/2)+2*w-2*y)], [-1/46875*(-131+16*6^(1/2))*(-128*z*6^(1/2)+375*x-48*z), x, 1/75*(-16+6^(1/2))*(-z*6^(1/2)+6*x), z], [w, -8/5*y-w, y, 1/20*6^(1/2)*(y*6^(1/2)+20*w+16*y)]]:
@@ -69,6 +77,21 @@ In our particular example, the outputs are
   ```
 As can be seen `Lines` are the lines parametrized by two of the coordinates say $(w:z)$. In our example, the lines can be parametrized over a quadratic number field with low bits. Thus, the procedure `create_lines` can terminate in short amount of time. For more complicated cubic surfaces defined over higher bits, one has no other choice than to use floating point approximations to compute the lines and the procedure `no_lines` (which is exact and terminate almost immediately, if `gb` was already solved). The second output `mlines` is a list with entries 0 or 1 which describe multiplicity of the lines in `Lines`. If the line is non-simple and has multiplicity $>1$ then the entry is 1 otherwise it is 0. Clearly if the cubic surface is smooth all entries of `mlines` are 0 and there are 27 of them.
 
+If we use 
+  ```
+  add(dlines[i],i=1..nops(dlines))
+  ```
+We get the number of multiple lines.
+
+### Incidence of Lines
+
+If we are able to compute `Lines` (see [`compute_lines`](#compute_lines)), then we can use the output to compute the incidence relations. This terminates if the lines are defined over algebraic numbers of low degree and low bits. The procedure that allows this is called `compute_incidence` that takes `Lines` as input. 
+  ```
+  incs, poses := compute_incidence(Lines):
+  ```
+The output `incs` is a list of lists of integer indices, such that any element in $j$ in `inc[i]` satisfy $j>i$ and indicates that `Lines[j]` intersects with `Lines[i]`. The output `poses` is a list of lists of points in $\mathbb P^3$ (represented as 4-tuples of algebraic numbers). Such that the $k$-th point in `poses[i]` is the point of intersection of `Lines[incs[k]]` and `Lines[i]`. This therefore encodes incidence relation of all the lines.
+  
+The Eckardt points are those points on the cubic surface for which 3 or more lines are concurrent. If the surface is smooth, then 3 of the lines can only be concurrent and they are in fact coplanar. For singular cubics we can have more such lines and the concurrent lines need not be coplanar. 
 
 ## Acknowledgement
 

@@ -40,8 +40,8 @@ end proc:
     [dlines] = list containing 1 or 0 for the lines in Lines, if 1 then lines have multiplicity (singular case) otherwise 0 
 *)    
 create_lines := proc(gb,M)
-  local i,vars, dg, dd, deq,vec, nonzeros, eqns, pairs, pair, mat, facts, line_ds, lines, dlines, Lines, sol, newL, L:
-  global a,b,c,d,w,x,y,z,s,t:
+  local i,vars, dg, dd, deq,vec, nonzeros, eqns, pairs, pair, mat, facts, line_ds, lines, dlines, Lines, sol, newL, L,s,t:
+  global a,b,c,d,w,x,y,z:
   
   vars := [w,x,y,z]:
   
@@ -91,4 +91,35 @@ create_lines := proc(gb,M)
     Lines := Lines, evala(subs([s=sol[1],t=sol[2]], newL)):
   od:
   [Lines], [dlines];
+end:
+
+(*
+  Input: Lines
+    Lines = is the first output of create_lines
+  Output: [incs], [poses]
+     [incs] = a list of lists of integer indices, such that any element in j in inc[i] satisfy j>i and indicates that Lines[j] intersects with Lines[i]
+     [poses] = a list of lists of points in $\mathbb P^3$ (as 4-tuples of algebraic numbers). Such that the k-th point in poses[i] is the point of intersection of Lines[incs[k]] and Lines[i].
+*)
+compute_incidence := proc(Lines)
+  local i, inc, incs, pose, poses, j, sol:
+  global w,x,y,z:
+  
+  incs := NULL:
+  poses := NULL:
+  for i from 1 to nops(Lines)-1 do:
+    inc := NULL:
+    pose := NULL:
+    for j from i+1 to nops(Lines) do:
+      solve(Lines[i]-Lines[j]):
+      sol := evala(subs(%,Lines[i])):
+      if sol <> [0,0,0,0] then:
+        inc := inc, j:
+        pose := pose, subs([w=1,x=1,y=1,z=1],sol):
+      fi:
+    od:
+    incs := incs, [inc]:
+    poses := poses, [pose]:
+  od:
+
+  [incs], [poses]; 
 end:
