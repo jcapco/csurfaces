@@ -14,7 +14,7 @@ We say that a quaternary cubic form $F$ (or its zero set $X$) in the variables $
 
 Throughout when we write *cubic surface*, we mean one that is defined over $\mathbb Q$, normal (i.e. finitely many singular points) and has only finitely many number of lines.
 
-### *Cubic surfaces not in normal form*
+### Cubic surfaces not in normal form
 For a cubic surface $X$ not in normal form, there is a very easy way to compute the lines on the surface. One views the cubic surface as an affine surface, parametrizes the lines with respect to one of the variables, in our code we use $x$ as the parameter. The other variables $w,y,z$ are linear equations in $x$ with coefficients that need to be computed. These coefficients are computed by substitution in the cubic equation (via $w=1$ dehomogenization of the cubic form) and solving for zeros of the coefficients of $1,x,x^2,x^3$. This final part can be done via Groebner basis and is encoded in the `find_gb_lines` procedure of the library.
 
 Here is an example how this is done
@@ -27,7 +27,7 @@ In the example above since $F$ was chosen randomly, we would expect a smooth cub
 
 The above procedure also works for normal cubic surfaces (not necessarily smooth) as long as they are not in normal form and as long as it contains only finitely many lines!
 
-### *Cubic surfaces in normal form*
+### Cubic surfaces in normal form
 In many applications, it is convenient to study cubic surfaces in normal form. However, we cannot compute the lines using the method described previously. 
 
 Given is a normal cubic surface. One way to check if the previous procedure would work, is to try look at the polynomial `gb[1]`. If this polynomial is not of degree 27 or if it is not univariate in $d$, then we need to find another way to compute the number of lines. 
@@ -91,7 +91,11 @@ If we are able to compute `Lines` (see [`compute_lines`](#compute_lines)), then 
   ```
 The output `incs` is a list of lists of integer indices, such that any element in $j$ in `inc[i]` satisfy $j>i$ and indicates that `Lines[j]` intersects with `Lines[i]`. The output `poses` is a list of lists of points in $\mathbb P^3$ (represented as 4-tuples of algebraic numbers). Such that the $k$-th point in `poses[i]` is the point of intersection of `Lines[incs[k]]` and `Lines[i]`. This therefore encodes incidence relation of all the lines.
   
-The Eckardt points are those points on the cubic surface for which 3 or more lines are concurrent. If the surface is smooth, then 3 of the lines can only be concurrent and they are in fact coplanar. For singular cubics we can have more such lines and the concurrent lines need not be coplanar. 
+The Eckardt points are those points on the cubic surface for which 3 or more lines are concurrent. If the surface is smooth, then 3 of the lines can only be concurrent and they are in fact coplanar. For singular cubics we can have more such lines and the concurrent lines need not be coplanar. Once `incs` and `poses` are computed via `compute_incidence`, we are able to use their output to compute the Eckardt points :
+  ```
+  ecks := compute_eckardts(incs,poses):
+  ```
+The output `ecks` is a list of sets, where each set has at least 3 integers. Each integer in such a set are correspond to indices in `Lines`, indicating which 3 or more lines are concurrent. The common point of intersection of these lines are already encoded in `poses`.
 
 ## Acknowledgement
 

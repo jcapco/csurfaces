@@ -32,13 +32,14 @@ no_lines := proc(gb):
   add(%[i],i=1..nops(%)); #number of lines
 end proc:
 
-(* Input:  gb, M
-      gb = Groebner basis for computing lines in non-normal form
-      M = projective transformation to non-normal form
-   Output: [Lines], [dlines]
-    [Lines] = list of lines (original form) parametrized by (s:t)
-    [dlines] = list containing 1 or 0 for the lines in Lines, if 1 then lines have multiplicity (singular case) otherwise 0 
-*)    
+(* 
+Input:  gb, M
+  gb = Groebner basis for computing lines in non-normal form
+  M = projective transformation to non-normal form
+Output: [Lines], [dlines]
+  [Lines] = list of lines (original form) parametrized by (s:t)
+  [dlines] = list containing 1 or 0 for the lines in Lines, if 1 then lines have multiplicity (singular case) otherwise 0 
+*)     
 create_lines := proc(gb,M)
   local i,vars, dg, dd, deq,vec, nonzeros, eqns, pairs, pair, mat, facts, line_ds, lines, dlines, Lines, sol, newL, L,s,t:
   global a,b,c,d,w,x,y,z:
@@ -94,11 +95,11 @@ create_lines := proc(gb,M)
 end:
 
 (*
-  Input: Lines
-    Lines = is the first output of create_lines
-  Output: [incs], [poses]
-     [incs] = a list of lists of integer indices, such that any element in j in inc[i] satisfy j>i and indicates that Lines[j] intersects with Lines[i]
-     [poses] = a list of lists of points in $\mathbb P^3$ (as 4-tuples of algebraic numbers). Such that the k-th point in poses[i] is the point of intersection of Lines[incs[k]] and Lines[i].
+Input: Lines
+  Lines = is the first output of create_lines
+Output: [incs], [poses]
+   [incs] = a list of lists of integer indices, such that any element in j in inc[i] satisfy j>i and indicates that Lines[j] intersects with Lines[i]
+   [poses] = a list of lists of points in $\mathbb P^3$ (as 4-tuples of algebraic numbers). Such that the k-th point in poses[i] is the point of intersection of Lines[incs[k]] and Lines[i].
 *)
 compute_incidence := proc(Lines)
   local i, inc, incs, pose, poses, j, sol:
@@ -122,4 +123,34 @@ compute_incidence := proc(Lines)
   od:
 
   [incs], [poses]; 
+end:
+
+(*
+Input: incs, poses. See output of compute_incidence 
+Output: [ecks]
+  [ecks] = a list of sets, where each set has at least 3 integers. Each integer in such a set are correspond to indices in Lines (see create_lines), indicating which 3 or more lines are concurrent. The common point of intersection of these lines are already encoded in poses.
+*)
+compute_eckardts := proc(incs, poses)
+  local eck, ecks, i, j, k, inc, tested, sol, pose:
+  
+  ecks := NULL:
+  for k from 1 to nops(incs) do:
+    inc := incs[k]:
+    eck := {}:
+    tested := {};  
+    for i from 1 to nops(inc)-1 do:  
+      if inc[i] in tested then next: fi:
+      tested := tested union {inc[i]}:
+      eck := {inc[i]}:
+      pose := l*~poses[k][i]:
+      for j from i+1 to nops(inc) do:
+        sol := solve(pose - poses[k][j]):
+        if sol <> NULL then #up to constant multiplication
+          eck := eck  union {inc[j]}
+        fi:    
+      od:
+      if nops(eck) > 1 then ecks := ecks, (eck union {k}): fi:
+    od:
+  od:
+  [ecks];
 end:
