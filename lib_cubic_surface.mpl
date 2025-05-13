@@ -33,25 +33,27 @@ no_lines := proc(gb):
 end proc:
 
 (* 
-Input:  gb, M
+Input:  gb, M, eps (optional)
   gb = Groebner basis for computing lines in non-normal form
   M = projective transformation to non-normal form
+  eps = positive real number. If given, output is computed numerically with eps specifying the level of precision.
 Output: [Lines], [dlines]
   [Lines] = list of lines (original form) parametrized by (s:t)
   [dlines] = list containing 1 or 0 for the lines in Lines, if 1 then lines have multiplicity (singular case) otherwise 0 
-*)     
-create_lines := proc(gb,M)
-  local i,vars, dg, dd, deq,vec, nonzeros, eqns, pairs, pair, mat, facts, line_ds, lines, dlines, Lines, sol, newL, L,s,t:
+*)    
+create_lines := proc(gb,M,eps:=0)
+  local i,vars, dg, dd, deq,vec, nonzeros, eqns, pairs, pair, mat, facts, line_ds, lines, dlines, Lines, sol, newL, L, s,t:
   global a,b,c,d,w,x,y,z:
   
   vars := [w,x,y,z]:
   
-  eqns := gb[2..nops(gb)]:
+  eqns := gb[2..nops(gb)]:  
   facts := factors(gb[1])[2]:
   line_ds := NULL:
   for deq in facts do:
-    solve(deq[1]): 
-    line_ds := line_ds, %:
+    if (eps > 0) then line_ds := line_ds, fsolve(deq[1], complex):
+    else line_ds := line_ds, solve(deq[1]):
+    fi:
   od:
   line_ds := sort([line_ds]): #consistent order of roots
 
@@ -59,18 +61,20 @@ create_lines := proc(gb,M)
   lines := NULL:
   dlines := NULL: #double or higher "multiplicity" lines
   for dd in line_ds do:
-    if evala(subs(d=dd,dg))=0 then
+    if (eps>0 and abs(subs(d=dd,dg))<eps) or (eps=0 and evala(subs(d=dd,dg))=0) then
       dlines := dlines, 1:
     else dlines := dlines, 0:
     fi:
+    
     solve(subs(d=dd,eqns)):
     lines := lines, subs(%,[w,x,a*w+b*x,c*w+dd*x]):
   od:
   
   Lines := NULL:
   for L in lines do:
-    convert(M.<subs([w=s,x=t],L)>, list): #proj. transform back to original
-    newL:=evala(%):  
+    newL := convert(M.<subs([w=s,x=t],L)>, list): #proj. transform back to original
+    if (eps=0) then newL:=evala(newL): 
+    else newL := evalf(newL): fi:    
     
     #avoiding parameters that are dependent
     nonzeros := NULL:
@@ -81,15 +85,19 @@ create_lines := proc(gb,M)
     pairs := combinat:-choose([nonzeros],2);
     for pair in pairs do
       mat := LinearAlgebra:-GenerateMatrix(pair,[s,t]):
-      if evala(linalg:-det(mat)) <> 0 then 
+      if (eps > 0 and abs(linalg:-det(mat))>eps) or (eps=0 and evala(linalg:-det(mat)) <> 0) then 
         vec := <rhs(pair[1]),rhs(pair[2])>:
         break:
       fi:
     od:
     
-    convert(linalg:-inverse(mat).vec,list):
-    sol := evala(%):
-    Lines := Lines, evala(subs([s=sol[1],t=sol[2]], newL)):
+    sol := convert(linalg:-inverse(mat).vec,list):
+    if (eps = 0) then 
+      sol := evala(%): 
+      Lines := Lines, evala(subs([s=sol[1],t=sol[2]], newL)):
+    else
+      Lines := Lines, evalf(subs([s=sol[1],t=sol[2]], newL)):
+    fi:    
   od:
   [Lines], [dlines];
 end:
@@ -116,6 +124,44 @@ compute_incidence := proc(Lines)
       if sol <> [0,0,0,0] then:
         inc := inc, j:
         pose := pose, subs([w=1,x=1,y=1,z=1],sol):
+      fi:
+    od:
+    incs := incs, [inc]:
+    poses := poses, [pose]:
+  od:
+
+  [incs], [poses]; 
+end:
+
+(*
+Input: Lines
+  Lines = is the first output of create_lines
+  eps = positive real number. For numerically computing the incidence relation of the lines, eps specifies the level of precision.
+Output: [incs], [poses]
+   [incs] = a list of lists of integer indices, such that any element in j in inc[i] satisfy j>i and indicates that Lines[j] intersects with Lines[i]
+   [poses] = a list of lists of points in $\mathbb P^3$ (as 4-tuples of algebraic numbers). Such that the k-th point in poses[i] is the point of intersection of Lines[incs[k]] and Lines[i].
+*)
+compute_incidence_num := proc(Lines, eps)
+  local i, inc, incs, pose, poses, j, sol,sub, eqns,vars, L1,L2, err:
+  global w,x,y,z:
+  
+  incs := NULL:
+  poses := NULL:
+  for i from 1 to nops(Lines)-1 do:  
+    inc := NULL:
+    pose := NULL:
+    for j from i+1 to nops(Lines) do:
+      indets(Lines[i]):
+      L1 := subs([%[1]=1, %[2]=t1], Lines[i]):
+      indets(Lines[j]):
+      L2 := subs([%[1]=s2, %[2]=t2], Lines[j]):      
+      eqns := L1-L2:
+      sub := linalg:-leastsqrs({op(eqns)},{t1,s2,t2}):
+      err := linalg:-norm(subs(sub,L1-L2)):
+      sol := subs(sub,L1):
+      if eps > 0 and err<eps then:
+        inc := inc, j:
+        pose := pose, sol:
       fi:
     od:
     incs := incs, [inc]:
@@ -154,3 +200,4 @@ compute_eckardts := proc(incs, poses)
   od:
   [ecks];
 end:
+

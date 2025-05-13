@@ -83,19 +83,44 @@ If we use
   ```
 We get the number of multiple lines.
 
+In most cases, the lines cannot be computed exactly as in our examples. Each line is defined over a number field of very large degree, even if the cubic form is over the rationals. Therefore, it is often convenient to compute the lines numerically, which is sufficient for many applications that only require an approximation (e.g. checking if the lines are real). For numerical computation, a precision level must be specified i.e. a small positive number such that any absolute error below this threshold is treated as zero. This can be provided as the optional third parameter eps in create_lines; if specified and greater than 0, the lines are computed numerically to the given level of precision:
+
+---
+  **`compute_lines_num`**
+  <a id="compute_lines_num"></a>    
+  ```
+  Digits := 20: #specifies the floating point precision in Maple 
+  eps := 1e-4:
+  
+  F:=5*x^3 - 9*x^2*y + 15*x^2*z - 216*x^2*w + 2*x*y*z + 5*x*y*w - 255*x*z^2 - 96*x*z*w + 104*x*w^2 + 9*y^2*z - 4*y^2*w + 11*y*z^2 - 139*y*z*w - 16*y*w^2 - 45*z^3 + 35*z^2*w - 11*z*w^2 + 108*w^3;
+ 
+  M:=linalg:-randmatrix(4,4,entries=rand(-4..4)):
+  linalg:-det(M);
+  g,G,gb := generic_cubic_transform(subs(w=1,F), M):
+  
+  Lines, mlines := create_lines(gb,M,eps): #computes lines numerically
+  ```
+---
+
 ### Incidence of Lines
 
-If we are able to compute `Lines` (see [`compute_lines`](#compute_lines)), then we can use the output to compute the incidence relations. This terminates if the lines are defined over algebraic numbers of low degree and low bits. The procedure that allows this is called `compute_incidence` that takes `Lines` as input. 
+If we are able to compute `Lines` exactly (see [`compute_lines`](#compute_lines)), then we can use the output to compute the incidence relations. This terminates if the lines are defined over algebraic numbers of low degree and low bits. The procedure that allows this is called `compute_incidence` that takes `Lines` as input. 
   ```
   incs, poses := compute_incidence(Lines):
   ```
 The output `incs` is a list of lists of integer indices, such that any element in $j$ in `inc[i]` satisfy $j>i$ and indicates that `Lines[j]` intersects with `Lines[i]`. The output `poses` is a list of lists of points in $\mathbb P^3$ (represented as 4-tuples of algebraic numbers). Such that the $k$-th point in `poses[i]` is the point of intersection of `Lines[incs[k]]` and `Lines[i]`. This therefore encodes incidence relation of all the lines.
   
-The Eckardt points are those points on the cubic surface for which 3 or more lines are concurrent. If the surface is smooth, then 3 of the lines can only be concurrent and they are in fact coplanar. For singular cubics we can have more such lines and the concurrent lines need not be coplanar. Once `incs` and `poses` are computed via `compute_incidence`, we are able to use their output to compute the Eckardt points :
+The Eckardt points are those points on the cubic surface for which 3 or more lines are concurrent. If the surface is smooth, then 3 of the lines can only be concurrent and they are in fact coplanar. For singular cubics we can have more such lines and the concurrent lines need not be coplanar. Once `incs` and `poses` are computed via `compute_incidence`, we are able to use their output to compute the Eckardt points:
   ```
   ecks := compute_eckardts(incs,poses):
   ```
 The output `ecks` is a list of sets, where each set has at least 3 integers. Each integer in such a set are correspond to indices in `Lines`, indicating which 3 or more lines are concurrent. The common point of intersection of these lines are already encoded in `poses`.
+
+If `compute_incidence` does not terminate in a reasonable time, then the best option is to compute `Lines` numerically with `create_lines` and a threshold `eps` (see [`compute_lines_num`](#compute_lines_num)) and use 
+the `compute_incidence_num` command passing `Lines` and `eps`:
+  ```
+  incs , poses := compute_incidence_num(Lines,eps):
+  ```
 
 ## Acknowledgement
 
